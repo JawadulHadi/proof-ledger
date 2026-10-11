@@ -6,8 +6,8 @@ services:
     name: proof-ledger
     runtime: python
     plan: free
-    buildCommand: ./build.sh
-    startCommand: ./start.sh
+    buildCommand: sh build.sh
+    startCommand: sh start.sh
     healthCheckPath: /api/v1/
     autoDeploy: true
     envVars:
