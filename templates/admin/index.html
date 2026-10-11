@@ -1,0 +1,25 @@
+{% extends 'unfold/layouts/base.html' %}
+{% block content %}
+<section aria-labelledby="stale-h" class="mb-8">
+  <h2 id="stale-h" class="text-lg font-semibold mb-2">Revise next</h2>
+  <ul>
+    {% for s in stale_skills %}
+    <li>{{ s.name }}: freshness {{ s.fresh }}</li>
+    {% empty %}
+    <li>Add skills in the Skills section to start tracking freshness.</li>
+    {% endfor %}
+  </ul>
+</section>
+<section aria-labelledby="proof-h" class="mb-8">
+  <h2 id="proof-h" class="text-lg font-semibold mb-2">Skills with no proof</h2>
+  <ul>
+    {% for s in unproven %}<li>{{ s.name }}</li>{% empty %}<li>Every skill has proof.</li>{% endfor %}
+  </ul>
+</section>
+<section aria-labelledby="funnel-h">
+  <h2 id="funnel-h" class="text-lg font-semibold mb-2">Application funnel</h2>
+  <ul>
+    {% for row in funnel %}<li>{{ row.status }}: {{ row.n }}</li>{% empty %}<li>No applications yet.</li>{% endfor %}
+  </ul>
+</section>
+{% endblock %}

@@ -1,0 +1,33 @@
+# Render Blueprint: free Python web service. The database is a free Neon Postgres project
+# (Render's free Postgres is deleted after 30 days; Neon's free tier does not expire).
+# Free web instances sleep after ~15 minutes idle.
+services:
+  - type: web
+    name: proof-ledger
+    runtime: python
+    plan: free
+    buildCommand: ./build.sh
+    startCommand: ./start.sh
+    healthCheckPath: /api/v1/
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: DEBUG
+        value: '0'
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_HOSTS
+        value: localhost
+      - key: DATABASE_URL
+        sync: false
+      - key: GITHUB_USER
+        value: JawadulHadi
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: DJANGO_SUPERUSER_USERNAME
+        sync: false
+      - key: DJANGO_SUPERUSER_EMAIL
+        sync: false
+      - key: DJANGO_SUPERUSER_PASSWORD
+        sync: false

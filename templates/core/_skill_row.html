@@ -1,0 +1,9 @@
+<li id="skill-{{ s.pk }}" class="row">
+  <span class="name">{{ s.name }}</span>
+  <span class="bar" role="img" aria-label="Freshness {{ s.fresh }}"><i style="width: {% widthratio s.fresh 1 100 %}%"></i></span>
+  <span class="val">{{ s.fresh }}</span>
+  <span class="proof">{% if s.proof_count %}{{ s.proof_count }} proof{{ s.proof_count|pluralize }}{% else %}no proof{% endif %}</span>
+  {% if user.is_staff %}
+  <button hx-post="{% url 'revise' s.pk %}" hx-target="#skill-{{ s.pk }}" hx-swap="outerHTML" aria-label="Mark {{ s.name }} revised">Mark revised</button>
+  {% endif %}
+</li>
