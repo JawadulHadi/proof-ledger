@@ -9,4 +9,4 @@ RUN DEBUG=0 SECRET_KEY=build-only-not-used python manage.py collectstatic --noin
 RUN useradd --create-home app && chown -R app /app
 USER app
 EXPOSE 8000
-CMD ["./start.sh"]
+CMD ["sh", "start.sh"]
