@@ -1,10 +1,16 @@
 from django.db.models import Count, Max
 from django.urls import include, path
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from rest_framework import routers, serializers, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Application, Proof, Skill
+from .dashboard import funnel, summary, variant_funnel
+from .models import Proof, Skill
+
+# Public, read-only data that changes a few times a day: cache it briefly.
+CACHE_SECONDS = 60
 
 
 class SkillSerializer(serializers.ModelSerializer):
@@ -25,7 +31,7 @@ class ProofSerializer(serializers.ModelSerializer):
     class Meta:
         model = Proof
         # star_answer is deliberately excluded: interview drafts stay private.
-        fields = ['id', 'title', 'kind', 'url', 'metric', 'occurred_at', 'skills']
+        fields = ['id', 'title', 'kind', 'url', 'metric', 'occurred_at', 'link_ok', 'skills']
 
 
 class SkillViewSet(viewsets.ReadOnlyModelViewSet):
@@ -41,18 +47,26 @@ class ProofViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Proof.objects.prefetch_related('skills').order_by('-occurred_at')
 
 
+@method_decorator(cache_page(CACHE_SECONDS), name='get')
 class SummaryView(APIView):
     def get(self, request):
-        return Response({
-            'skills': Skill.objects.count(),
-            'proofs': Proof.objects.count(),
-            'applications': Application.objects.count(),
-            'unproven_skills': Skill.objects.filter(proofs__isnull=True).count(),
-        })
+        return Response(summary())
+
+
+@method_decorator(cache_page(CACHE_SECONDS), name='get')
+class FunnelView(APIView):
+    """Applications per stage, and reply rate per resume variant."""
+
+    def get(self, request):
+        return Response({'stages': funnel(), 'variants': variant_funnel()})
 
 
 router = routers.DefaultRouter()
 router.register('skills', SkillViewSet)
 router.register('proofs', ProofViewSet)
 
-urlpatterns = [path('summary/', SummaryView.as_view()), path('', include(router.urls))]
+urlpatterns = [
+    path('summary/', SummaryView.as_view()),
+    path('funnel/', FunnelView.as_view()),
+    path('', include(router.urls)),
+]

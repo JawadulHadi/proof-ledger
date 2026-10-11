@@ -1,25 +1,68 @@
-{% extends 'unfold/layouts/base.html' %}
+{% extends 'admin/base.html' %}
+{% load i18n %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block branding %}{% include 'unfold/helpers/site_branding.html' %}{% endblock %}
 {% block content %}
-<section aria-labelledby="stale-h" class="mb-8">
-  <h2 id="stale-h" class="text-lg font-semibold mb-2">Revise next</h2>
-  <ul>
-    {% for s in stale_skills %}
-    <li>{{ s.name }}: freshness {{ s.fresh }}</li>
-    {% empty %}
-    <li>Add skills in the Skills section to start tracking freshness.</li>
+<div class="flex flex-col gap-8">
+  <div class="grid gap-4 grid-cols-2 lg:grid-cols-4">
+    {% for value, label in stat_tiles %}
+    <div class="border border-base-200 dark:border-base-800 rounded-default p-4 bg-white dark:bg-base-900">
+      <div class="text-2xl font-semibold text-font-important-light dark:text-font-important-dark">{{ value }}</div>
+      <div class="text-sm">{{ label }}</div>
+    </div>
     {% endfor %}
-  </ul>
-</section>
-<section aria-labelledby="proof-h" class="mb-8">
-  <h2 id="proof-h" class="text-lg font-semibold mb-2">Skills with no proof</h2>
-  <ul>
-    {% for s in unproven %}<li>{{ s.name }}</li>{% empty %}<li>Every skill has proof.</li>{% endfor %}
-  </ul>
-</section>
-<section aria-labelledby="funnel-h">
-  <h2 id="funnel-h" class="text-lg font-semibold mb-2">Application funnel</h2>
-  <ul>
-    {% for row in funnel %}<li>{{ row.status }}: {{ row.n }}</li>{% empty %}<li>No applications yet.</li>{% endfor %}
-  </ul>
-</section>
+  </div>
+
+  {% if unproven %}
+  <div class="border-l-4 border-red-600 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 p-4 rounded-default" role="note">
+    <strong>{{ unproven|length }} skill{{ unproven|length|pluralize }} without proof:</strong>
+    {% for s in unproven %}<a class="underline" href="{% url 'admin:core_skill_change' s.pk %}">{{ s.name }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="grid gap-8 lg:grid-cols-2">
+    <section aria-labelledby="stale-h">
+      <h2 id="stale-h" class="text-lg font-semibold mb-3 text-font-important-light dark:text-font-important-dark">Revise next</h2>
+      <ul class="flex flex-col gap-2">
+        {% for s in stale_skills %}
+        <li class="flex items-center gap-3">
+          <a class="w-36 truncate" href="{% url 'admin:core_skill_change' s.pk %}">{{ s.name }}</a>
+          <span class="flex-1 h-2 rounded-full bg-base-200 dark:bg-base-800 overflow-hidden" role="img" aria-label="Freshness {{ s.pct }} percent">
+            <span class="block h-full {% if s.tier == 'fresh' %}bg-green-600{% elif s.tier == 'fading' %}bg-amber-500{% else %}bg-red-600{% endif %}" style="width: {{ s.pct }}%"></span>
+          </span>
+          <span class="w-10 text-right tabular-nums">{{ s.pct }}%</span>
+        </li>
+        {% empty %}
+        <li>Add skills in the Skills section to start tracking freshness.</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section aria-labelledby="funnel-h">
+      <h2 id="funnel-h" class="text-lg font-semibold mb-3 text-font-important-light dark:text-font-important-dark">Reply rate by resume</h2>
+      <table class="w-full">
+        <thead><tr class="text-left"><th class="py-1">Variant</th><th class="text-right">Sent</th><th class="text-right">Replies</th><th class="text-right">Rate</th></tr></thead>
+        <tbody>
+          {% for v in variants %}
+          <tr class="border-t border-base-200 dark:border-base-800"><td class="py-1">{{ v.variant }}</td><td class="text-right">{{ v.sent }}</td>
+            <td class="text-right">{{ v.responded }}</td><td class="text-right">{% if v.sent %}{% widthratio v.reply_rate 1 100 %}%{% else %}-{% endif %}</td></tr>
+          {% empty %}<tr><td colspan="4">No resume variants yet.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+      <p class="mt-3 text-sm">Funnel: {% for row in funnel %}{{ row.label }} {{ row.n }}{% if not forloop.last %} · {% endif %}{% endfor %}</p>
+    </section>
+  </div>
+
+  {% if snapshots %}
+  <section aria-labelledby="weeks-h">
+    <h2 id="weeks-h" class="text-lg font-semibold mb-3 text-font-important-light dark:text-font-important-dark">Weekly numbers</h2>
+    <table class="w-full">
+      <thead><tr class="text-left"><th class="py-1">Week of</th><th class="text-right">Applications</th><th class="text-right">Replies</th><th class="text-right">Interviews</th><th class="text-right">Referrals</th></tr></thead>
+      <tbody>{% for w in snapshots %}<tr class="border-t border-base-200 dark:border-base-800"><td class="py-1">{{ w.week_start }}</td><td class="text-right">{{ w.applications }}</td><td class="text-right">{{ w.replies }}</td><td class="text-right">{{ w.interviews }}</td><td class="text-right">{{ w.referral_asks }}</td></tr>{% endfor %}</tbody>
+    </table>
+  </section>
+  {% endif %}
+</div>
 {% endblock %}

@@ -67,9 +67,24 @@ Or with Postgres: `docker compose up`.
 
 | Command | What it does |
 |---|---|
-| `seed_demo` | Creates starter skills and resume variants. Edit levels to be honest. |
-| `sync_github` | Pulls public repos as Proof rows, links skills by repo topic. Set `GITHUB_USER`, optional `GITHUB_TOKEN`. |
-| `weekly_digest` | Prints a markdown plan: stale skills, unproven skills, funnel. |
+| `seed_demo` | Creates starter skills (with GitHub topic aliases) and resume variants. Edit levels to be honest. |
+| `sync_github` | Pulls your public repos as Proof rows and links skills by repo topic. Forks and archived repos are skipped. Set `GITHUB_USER`, optional `GITHUB_TOKEN`. |
+| `link_check` | Requests every proof URL and flags dead links (`link_ok`), shown on the dashboard and admin. |
+| `weekly_digest [--save]` | Prints a markdown plan: stale skills, unproven skills, funnel, reply rate per resume variant, next actions. `--save` stores this week's numbers as a `MetricSnapshot`. |
+
+## What the dashboard shows
+
+- **Public page (`/`)**: the interactive decay curve, totals, a banner for skills with no proof, every
+  skill by freshness (staff can mark one revised in place with HTMX), recent proof, the application
+  funnel and reply rate by resume variant.
+- **Admin home**: the same numbers for you, plus the five skills to revise next and weekly snapshots.
+- **API (`/api/v1/`)**: `skills/`, `proofs/`, `summary/` and `funnel/`, read-only, throttled, and the
+  summary and funnel cached for 60 seconds.
+
+### Topic-to-skill mapping
+
+A repo topic proves a skill when it equals the skill's name (lowercased, spaces as dashes) or one of
+its `github_topics`, for example `LLM integration` with `llm, agents`. Edit them in the admin.
 
 ## Quality
 
@@ -83,6 +98,8 @@ pytest --cov=core --cov-fail-under=85
 - Freshness is `exp(-ln2 * days / half_life)`, tested with frozen time.
 - Admin querysets annotate the last proof date, so the list view has no N+1 queries (tested).
 - The API never exposes `star_answer`, your private interview drafts (tested).
+- "Responded" means replied, interview or offer; "sent" is anything past saved. Reply rate is per resume variant.
+- Weekly snapshots count applications by `applied_on` week, so they can be re-saved without double counting.
 - Marking a skill revised from the public page needs a logged-in staff user.
 
 ## Deploy (free)
@@ -101,8 +118,9 @@ In Render: New, Blueprint, pick this repo, then set `DATABASE_URL` (Neon connect
 
 ## Roadmap
 
-- [ ] Link-check command for proof URLs
-- [ ] Topic-to-skill mapping table instead of name matching
+- [x] Link-check command for proof URLs
+- [x] Topic-to-skill mapping (`Skill.github_topics`)
+- [ ] Scheduled `link_check` and `sync_github` (needs a cron host or a CI secret for the database)
 - [ ] LLM-drafted STAR answers through a provider gateway
 - [ ] React rebuild of the dashboard (`proof-ledger-ui`)
 

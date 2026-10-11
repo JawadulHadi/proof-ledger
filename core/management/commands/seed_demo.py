@@ -2,11 +2,14 @@ from django.core.management.base import BaseCommand
 
 from core.models import Application, ResumeVariant, Skill
 
+# (name, category, extra GitHub topics). The skill name itself already counts as a topic,
+# so 'PostgreSQL' matches the `postgresql` topic without an alias.
 SKILLS = [
-    ('Python', 'backend'), ('FastAPI', 'backend'), ('Django', 'backend'),
-    ('NestJS', 'backend'), ('TypeScript', 'backend'), ('PostgreSQL', 'data'),
-    ('GraphQL', 'backend'), ('BullMQ', 'backend'), ('Redis', 'data'),
-    ('RAG', 'ai'), ('LLM integration', 'ai'), ('React', 'frontend'),
+    ('Python', 'backend', ''), ('FastAPI', 'backend', ''), ('Django', 'backend', ''),
+    ('NestJS', 'backend', ''), ('TypeScript', 'backend', ''), ('PostgreSQL', 'data', 'postgres'),
+    ('GraphQL', 'backend', ''), ('BullMQ', 'backend', ''), ('Redis', 'data', ''),
+    ('RAG', 'ai', ''), ('LLM integration', 'ai', 'llm, agents'), ('MCP', 'ai', ''),
+    ('React', 'frontend', ''),
 ]
 
 
@@ -14,8 +17,12 @@ class Command(BaseCommand):
     help = 'Create demo data. Edit levels to match reality, the dashboard is only as honest as you.'
 
     def handle(self, *args, **options):
-        for name, category in SKILLS:
-            Skill.objects.get_or_create(name=name, defaults={'category': category})
+        for name, category, topics in SKILLS:
+            skill, created = Skill.objects.get_or_create(
+                name=name, defaults={'category': category, 'github_topics': topics})
+            if not created and topics and not skill.github_topics:
+                skill.github_topics = topics
+                skill.save(update_fields=['github_topics'])
         variants = [
             ResumeVariant.objects.get_or_create(name=n, defaults={'headline': h})[0]
             for n, h in [

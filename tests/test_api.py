@@ -28,3 +28,20 @@ def test_summary_counts(client):
 def test_revise_requires_staff(client):
     skill = Skill.objects.create(name='Python', category='backend')
     assert client.post(f'/skills/{skill.pk}/revise/').status_code == 302
+
+
+@pytest.mark.django_db
+def test_funnel_endpoint(client):
+    from core.models import Application, ResumeVariant
+    v = ResumeVariant.objects.create(name='AI Engineer', headline='h')
+    Application.objects.create(company='c', role='r', variant=v, status='replied')
+    data = client.get('/api/v1/funnel/').json()
+    assert data['variants'][0]['reply_rate'] == 1.0
+    assert {'status': 'replied', 'label': 'Replied', 'n': 1} in data['stages']
+
+
+@pytest.mark.django_db
+def test_summary_is_cached(client):
+    first = client.get('/api/v1/summary/').json()
+    Skill.objects.create(name='Go', category='backend')
+    assert client.get('/api/v1/summary/').json() == first

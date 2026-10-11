@@ -16,12 +16,20 @@ class Skill(models.Model):
     level = models.IntegerField(choices=Level.choices, default=Level.WORKING)
     half_life_days = models.PositiveIntegerField(default=90)
     last_revised_at = models.DateTimeField(null=True, blank=True)
+    # GitHub repo topics that count as proof of this skill, comma-separated (e.g. 'llm, agents').
+    # sync_github also matches the skill name itself, so this is only needed for aliases.
+    github_topics = models.CharField(max_length=200, blank=True)
 
     class Meta:
         ordering = ['name']
 
     def __str__(self):
         return self.name
+
+    def topic_list(self):
+        names = {self.name.lower().replace(' ', '-')}
+        names.update(t.strip().lower() for t in self.github_topics.split(',') if t.strip())
+        return names
 
     def latest_proof_date(self):
         proof = self.proofs.order_by('-occurred_at').first()
@@ -90,7 +98,8 @@ class Application(models.Model):
 
     company = models.CharField(max_length=120)
     role = models.CharField(max_length=120)
-    variant = models.ForeignKey(ResumeVariant, null=True, blank=True, on_delete=models.SET_NULL)
+    variant = models.ForeignKey(ResumeVariant, null=True, blank=True, on_delete=models.SET_NULL,
+                                related_name='applications')
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.SAVED)
     referral = models.BooleanField(default=False)
     applied_on = models.DateField(null=True, blank=True)

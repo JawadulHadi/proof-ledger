@@ -95,6 +95,7 @@ UNFOLD = {
     'SITE_TITLE': 'Proof Ledger',
     'SITE_HEADER': 'Proof Ledger',
     'DASHBOARD_CALLBACK': 'core.dashboard.dashboard_callback',
+    'SIDEBAR': {'show_search': True, 'show_all_applications': True},
 }
 
 REST_FRAMEWORK = {

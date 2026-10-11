@@ -35,3 +35,18 @@ def test_mark_revised_action(staff_client):
     )
     skill.refresh_from_db()
     assert skill.last_revised_at is not None
+
+
+@pytest.mark.django_db
+def test_every_admin_page_renders(staff_client):
+    from core.models import Application, MetricSnapshot, ResumeVariant
+    skill = Skill.objects.create(name='Django', category='backend', github_topics='django')
+    Proof.objects.create(title='p', kind='repo').skills.add(skill)
+    v = ResumeVariant.objects.create(name='Lead', headline='h')
+    Application.objects.create(company='c', role='r', variant=v, status='applied')
+    MetricSnapshot.objects.create(week_start='2026-10-05', applications=1)
+    for model in ['skill', 'proof', 'application', 'resumevariant', 'metricsnapshot']:
+        assert staff_client.get(reverse(f'admin:core_{model}_changelist')).status_code == 200
+    assert staff_client.get(reverse('admin:core_skill_change', args=[skill.pk])).status_code == 200
+    home = staff_client.get('/admin/').content.decode()
+    assert 'Reply rate by resume' in home
