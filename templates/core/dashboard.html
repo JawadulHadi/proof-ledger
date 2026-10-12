@@ -1,100 +1,205 @@
-{% load static %}<!doctype html>
+<!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8">
+  {% load static %}
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Proof Ledger</title>
   <meta name="description" content="Skills, the proof behind each one, and how fresh they are.">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap">
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap">
   <link rel="stylesheet" href="{% static 'core/dashboard.css' %}">
   {% if user.is_staff %}<script src="{% static 'core/htmx.min.js' %}" defer></script>{% endif %}
+  <!-- .js hides .reveal sections until motion.js shows them; if motion.js 404s or throws,
+       drop .js on load so the page renders complete without it. -->
+  <script>
+    document.documentElement.classList.add('js');
+    addEventListener('load', function () { if (!window.motionReady) document.documentElement.classList.remove('js'); });
+  </script>
   <script src="{% static 'core/curve.js' %}" defer></script>
+  <script src="{% static 'core/motion.js' %}" defer></script>
 </head>
+
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
-<main>
-  <div class="brand"><span>Proof Ledger</span>{% if user.is_staff %}<a href="{% url 'admin:index' %}">Admin</a>{% endif %}</div>
+  <main>
+    <div class="brand"><span>Proof Ledger</span>{% if user.is_staff %}<a href="{% url 'admin:index' %}">Admin</a>{% endif %}</div>
 
-  <div class="hero">
-    <div>
-      <h1>Skills fade. Proof keeps them fresh.</h1>
-      <p class="lede">Every skill loses freshness the longer it goes without a revision or new proof.
-        A repo, case study or metric resets the clock. Move the sliders to see how a half-life shapes the curve.</p>
+    <div class="hero">
+      <div>
+        <h1>Skills fade. Proof keeps them fresh.</h1>
+        <p class="lede">Every skill loses freshness the longer it goes without a revision or new proof.
+          A repo, case study or metric resets the clock. Move the sliders to see how a half-life shapes the curve.</p>
+      </div>
+      <div class="card">
+        <svg viewBox="0 0 600 250" role="img" aria-label="Freshness decay curve over 180 days">
+          <line class="grid" x1="40" x2="580" y1="30" y2="30" />
+          <line class="grid" x1="40" x2="580" y1="120" y2="120" />
+          <line class="grid" x1="40" x2="580" y1="165" y2="165" />
+          <line class="grid" x1="40" x2="580" y1="210" y2="210" />
+          <text x="4" y="34">100%</text><text x="10" y="124">50%</text><text x="10" y="169">25%</text>
+          <text x="40" y="232">today</text><text x="310" y="232" text-anchor="middle">90 days</text><text x="580"
+            y="232" text-anchor="end">180 days</text>
+          <path id="area" />
+          <path id="curve" pathLength="100" />
+          <line id="drop" y1="0" y2="210" />
+          <circle id="dot" r="8" />
+        </svg>
+        <div class="ctl"><label for="day"><span>Days since last revision</span><output id="dayOut">45</output></label>
+          <input id="day" type="range" min="0" max="180" value="45">
+        </div>
+        <div class="ctl"><label for="half"><span>Half-life in days</span><output id="halfOut">90</output></label>
+          <input id="half" type="range" min="30" max="180" step="10" value="90">
+        </div>
+        <div class="play-row"><button id="play" type="button" aria-pressed="false">Play 180 days</button>
+          <p id="readout" aria-live="polite"></p>
+        </div>
+      </div>
     </div>
-    <div class="card">
-      <svg viewBox="0 0 600 250" role="img" aria-label="Freshness decay curve over 180 days">
-        <line class="grid" x1="40" x2="580" y1="30" y2="30"/><line class="grid" x1="40" x2="580" y1="120" y2="120"/>
-        <line class="grid" x1="40" x2="580" y1="165" y2="165"/><line class="grid" x1="40" x2="580" y1="210" y2="210"/>
-        <text x="4" y="34">100%</text><text x="10" y="124">50%</text><text x="10" y="169">25%</text>
-        <text x="40" y="232">today</text><text x="310" y="232" text-anchor="middle">90 days</text><text x="580" y="232" text-anchor="end">180 days</text>
-        <path id="area"/><path id="curve"/><line id="drop" y1="0" y2="210"/><circle id="dot" r="8"/>
-      </svg>
-      <div class="ctl"><label for="day"><span>Days since last revision</span><output id="dayOut">45</output></label>
-        <input id="day" type="range" min="0" max="180" value="45"></div>
-      <div class="ctl"><label for="half"><span>Half-life in days</span><output id="halfOut">90</output></label>
-        <input id="half" type="range" min="30" max="180" step="10" value="90"></div>
-      <p id="readout" aria-live="polite"></p>
-    </div>
-  </div>
 
-  <ul class="stats" aria-label="Totals">
-    <li><b>{{ stats.skills }}</b><span>skills tracked</span></li>
-    <li><b>{{ stats.proofs }}</b><span>proofs linked</span></li>
-    <li><b class="{% if stats.stale_skills %}stale{% endif %}">{{ stats.stale_skills }}</b><span>stale skills</span></li>
-    <li><b>{{ stats.applications }}</b><span>applications sent</span></li>
-  </ul>
-
-  {% if unproven %}
-  <p class="banner" role="note"><b>{{ unproven|length }} skill{{ unproven|length|pluralize }} without proof:</b>
-    {% for s in unproven %}{{ s.name }}{% if not forloop.last %}, {% endif %}{% endfor %}.</p>
-  {% endif %}
-
-  <section aria-labelledby="skills-h">
-    <h2 id="skills-h">Skills by freshness</h2>
-    <p class="muted">Stalest first. Freshness halves every half-life since the last revision or proof.</p>
-    <ul class="rows skills">{% for s in skills %}{% include 'core/_skill_row.html' %}{% empty %}<li class="row">No skills yet.</li>{% endfor %}</ul>
-  </section>
-
-  <section aria-labelledby="proofs-h">
-    <h2 id="proofs-h">Recent proof</h2>
-    <ul class="proofs">
-      {% for p in recent_proofs %}
-      <li class="card">
-        <div class="name">{% if p.url %}<a href="{{ p.url }}" rel="noopener">{{ p.title }}</a>{% else %}{{ p.title }}{% endif %}
-          {% if not p.link_ok %}<span class="stale">(link dead)</span>{% endif %}</div>
-        {% if p.metric %}<div>{{ p.metric }}</div>{% endif %}
-        <div class="meta">{{ p.get_kind_display }} · {{ p.occurred_at|date:"M j, Y" }}{% for s in p.skills.all %}{% if forloop.first %} · {% endif %}{{ s.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</div>
+    <ul class="stats reveal" aria-label="Totals">
+      <li><b data-count="{{ stats.skills }}">{{ stats.skills }}</b><span>skills tracked</span></li>
+      <li><b data-count="{{ stats.proofs }}">{{ stats.proofs }}</b><span>proofs linked</span></li>
+      <li><b data-count="{{ stats.stale_skills }}" class="{% if stats.stale_skills %}stale{% endif %}">{{ stats.stale_skills }}</b><span>stale skills</span></li>
+      <li><b data-count="{{ stats.applications }}">{{ stats.applications }}</b><span>applications sent</span></li>
+      <li class="decay"><b data-count="{{ decay.per_day }}" data-decimals="1">{{ decay.per_day|floatformat:1 }}</b><span>points fading a day</span>
+        <small id="ticker" data-per-day="{{ decay.per_day }}" aria-hidden="true"></small>
       </li>
-      {% empty %}<li class="muted">No proof yet. Run <code>sync_github</code> or add one in the admin.</li>{% endfor %}
     </ul>
-  </section>
 
-  <div class="two">
-    <section aria-labelledby="funnel-h">
-      <h2 id="funnel-h">Application funnel</h2>
-      <ul class="rows funnel">
-        {% for row in funnel %}
-        <li class="row"><span class="name">{{ row.label }}</span>
-          <span class="bar" role="img" aria-label="{{ row.n }} {{ row.label }}"><i class="stage" style="width: {{ row.pct }}%"></i></span>
-          <span class="meta">{{ row.n }}</span></li>
-        {% endfor %}
+    {% if unproven %}
+    <p class="banner" role="note"><b>{{ unproven|length }} skill{{ unproven|length|pluralize }} without proof:</b>
+      {% for s in unproven %}{{ s.name }}{% if not forloop.last %}, {% endif %}{% endfor %}.</p>
+    {% endif %}
+
+    <section class="reveal" aria-labelledby="map-h">
+      <h2 id="map-h">Half-life map</h2>
+      <p class="muted">Measured in half-lives, every skill rides the same curve, so a 30-day skill and a
+        180-day skill can sit side by side. Fresh, fading and stale are the same three bands for all of them.</p>
+      <div class="card map">
+        <svg id="hlmap" viewBox="0 0 640 250" role="group"
+          aria-label="Every skill placed on the freshness curve by half-lives since its last revision or proof">
+          {% for b in map.bands %}
+          <rect class="band {{ b.tier }}" x="{{ b.x }}" y="30" width="{{ b.width }}" height="180" />
+          <text class="band-label {{ b.tier }}" x="{{ b.x }}" dx="6" y="22">{{ b.tier }}</text>{% endfor %}
+          <line class="grid" x1="44" x2="544" y1="30" y2="30" />
+          <line class="grid" x1="44" x2="544" y1="120" y2="120" />
+          <line class="grid" x1="44" x2="544" y1="165" y2="165" />
+          <line class="grid" x1="44" x2="626" y1="210" y2="210" />
+          <text x="8" y="34">100%</text><text x="14" y="124">50%</text><text x="14" y="169">25%</text>
+          {% for t in map.ticks %}<text x="{{ t.x }}" y="230"
+            text-anchor="{% if forloop.first %}start{% else %}middle{% endif %}">{% if forloop.first %}now{% elif forloop.last %}{{ t.n }} half-lives{% else %}{{ t.n }}{% endif %}</text>{% endfor %}
+          <line class="divider" x1="572" x2="572" y1="30" y2="214" />
+          <text x="600" y="230" text-anchor="middle">no proof</text>
+          <path class="hl-area" d="{{ map.area }}" />
+          <path class="hl-curve" d="{{ map.path }}" pathLength="100" />
+          {% for p in map.pins %}
+          <a class="pin {{ p.skill.tier }}{% if p.n == '' %} flat{% endif %}" id="pin-{{ p.skill.pk }}"
+            href="#skill-{{ p.skill.pk }}" transform="translate({{ p.x }} {{ p.y }})" data-n="{{ p.n }}"
+            data-dy="{{ p.dy }}" data-name="{{ p.skill.name }}" data-pct="{{ p.skill.pct }}"
+            style="--i: {{ forloop.counter0 }}"
+            aria-label="{{ p.skill.name }}: {% if p.n == '' %}no revision or proof yet{% else %}{{ p.skill.pct }}% fresh, {{ p.skill.days }} day{{ p.skill.days|pluralize }} idle, {{ p.skill.half_life_days }}-day half-life{% endif %}">
+            <g class="dot">
+              <circle class="halo" r="7" />
+              <circle class="core" r="6" />
+            </g>
+          </a>
+          {% endfor %}
+          <g id="hl-tip" class="tip" aria-hidden="true">
+            <rect rx="6" height="24" /><text y="16"></text>
+          </g>
+        </svg>
+      </div>
+      {% if decay.fastest %}<p class="decay-note">Waiting costs most on <b>{{ decay.fastest.name }}</b>: it loses
+        {{ decay.fastest.decay_rate }} freshness points a day right now. The stalest skills lose less per day, but have
+        the most to win back.</p>{% endif %}
+    </section>
+
+    <section class="reveal" aria-labelledby="skills-h">
+      <h2 id="skills-h">Skills by freshness</h2>
+      <p class="muted">Stalest first. Freshness halves every half-life since the last revision or proof.</p>
+      <ul class="rows skills">{% for s in skills %}{% include 'core/_skill_row.html' %}{% empty %}<li class="row">No
+          skills yet.</li>{% endfor %}</ul>
+    </section>
+
+    <section class="reveal" aria-labelledby="proofs-h">
+      <div class="section-head">
+        <h2 id="proofs-h">Proof</h2><span class="meta">{{ proofs|length }} linked, newest first</span>
+      </div>
+      {% if proofs %}
+      <div class="proof-tools" id="proof-tools" hidden>
+        <input id="proof-q" type="search" placeholder="Filter by repo or skill"
+          aria-label="Filter proof by name or skill" autocomplete="off">
+        <div class="chips" role="group" aria-label="Proof kind">
+          <button type="button" class="chip" data-kind="" aria-pressed="true">All <span>{{ proofs|length }}</span></button>
+          {% for k in proof_kinds %}<button type="button" class="chip" data-kind="{{ k.kind }}"
+            aria-pressed="false">{{ k.label }} <span>{{ k.n }}</span></button>{% endfor %}
+        </div>
+      </div>
+      {% endif %}
+      <ul class="proofs" id="proof-list" data-preview="9">
+        {% for p in proofs %}
+        <li class="card" data-kind="{{ p.kind }}"
+          data-text="{{ p.title|lower }} {{ p.metric|lower }}{% for s in p.skills.all %} {{ s.name|lower }}{% endfor %}"
+          style="--i: {{ forloop.counter0 }}">
+          <div class="name">{% if p.url %}<a href="{{ p.url }}" rel="noopener">{{ p.title }}</a>{% else %}{{ p.title }}{% endif %}
+            {% if not p.link_ok %}<span class="stale">(link dead)</span>{% endif %}</div>
+          {% if p.metric %}<div>{{ p.metric }}</div>{% endif %}
+          <div class="meta">{{ p.get_kind_display }} · {{ p.occurred_at|date:"M j, Y" }}</div>
+          {% if p.skills.all %}<div class="skill-tags">{% for s in p.skills.all %}<span>{{ s.name }}</span>{% endfor %}
+          </div>{% endif %}
+        </li>
+        {% empty %}<li class="muted">No proof yet. Run <code>sync_github</code> or add one in the admin.</li>{% endfor %}
       </ul>
+      <p id="proof-empty" class="muted" hidden>No proof matches that filter.</p>
+      {% if proofs|length > 9 %}<button id="proof-more" class="more" type="button" aria-expanded="false"
+        aria-controls="proof-list" hidden>Show all {{ proofs|length }}</button>{% endif %}
     </section>
 
-    <section aria-labelledby="variants-h">
-      <h2 id="variants-h">Reply rate by resume</h2>
-      <table>
-        <thead><tr><th scope="col">Variant</th><th scope="col" class="num">Sent</th><th scope="col" class="num">Replies</th><th scope="col" class="num">Rate</th></tr></thead>
-        <tbody>
-          {% for v in variants %}
-          <tr><td>{{ v.variant }}</td><td class="num">{{ v.sent }}</td><td class="num">{{ v.responded }}</td>
-            <td class="num">{% if v.sent %}{% widthratio v.reply_rate 1 100 %}%{% else %}-{% endif %}</td></tr>
-          {% empty %}<tr><td colspan="4" class="muted">No resume variants yet.</td></tr>{% endfor %}
-        </tbody>
-      </table>
-    </section>
-  </div>
+    <div class="two">
+      <section class="reveal" aria-labelledby="funnel-h">
+        <h2 id="funnel-h">Application funnel</h2>
+        <ul class="rows funnel">
+          {% for row in funnel %}
+          <li class="row" style="--i: {{ forloop.counter0 }}"><span class="name">{{ row.label }}</span>
+            <span class="bar" role="img" aria-label="{{ row.n }} {{ row.label }}">
+              <i class="stage" style="width: {{ row.pct }}%"></i>
+            </span>
+            <span class="meta">{{ row.n }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </section>
 
-  <footer>Read-only API at <a href="/api/v1/">/api/v1/</a>. Interview answer drafts stay private.</footer>
-</main>
+      <section class="reveal" aria-labelledby="variants-h">
+        <h2 id="variants-h">Reply rate by resume</h2>
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Variant</th>
+              <th scope="col" class="num">Sent</th>
+              <th scope="col" class="num">Replies</th>
+              <th scope="col" class="num">Rate</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for v in variants %}
+            <tr>
+              <td>{{ v.variant }}</td>
+              <td class="num">{{ v.sent }}</td>
+              <td class="num">{{ v.responded }}</td>
+              <td class="num">{% if v.sent %}{% widthratio v.reply_rate 1 100 %}%{% else %}-{% endif %}</td>
+            </tr>
+            {% empty %}<tr>
+              <td colspan="4" class="muted">No resume variants yet.</td>
+            </tr>{% endfor %}
+          </tbody>
+        </table>
+      </section>
+    </div>
+
+    <footer>Read-only API at <a href="/api/v1/">/api/v1/</a>. Interview answer drafts stay private.</footer>
+  </main>
 </body>
+
 </html>

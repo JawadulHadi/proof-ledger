@@ -57,26 +57,33 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
-- Public dashboard: http://localhost:8000/
-- Admin: http://localhost:8000/admin/
-- API: http://localhost:8000/api/v1/ (read-only)
+- Public dashboard: [http://localhost:8000/](http://localhost:8000/)
+- Admin: [http://localhost:8000/admin/](http://localhost:8000/admin/)
+- API: [http://localhost:8000/api/v1/](http://localhost:8000/api/v1/) (read-only)
 
 Or with Postgres: `docker compose up`.
 
 ## Commands
 
-| Command | What it does |
-|---|---|
-| `seed_demo` | Creates starter skills (with GitHub topic aliases) and resume variants. Edit levels to be honest. |
-| `sync_github` | Pulls your public repos as Proof rows and links skills by repo topic. Forks and archived repos are skipped. Set `GITHUB_USER`, optional `GITHUB_TOKEN`. |
-| `link_check` | Requests every proof URL and flags dead links (`link_ok`), shown on the dashboard and admin. |
-| `weekly_digest [--save]` | Prints a markdown plan: stale skills, unproven skills, funnel, reply rate per resume variant, next actions. `--save` stores this week's numbers as a `MetricSnapshot`. |
+| Command                  | What it does                                                                                                                                                                                |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `seed_demo`              | Creates starter skills (with GitHub topic aliases) and resume variants. Edit levels to be honest.                                                                                           |
+| `sync_github`            | Pulls all your public repos (paginated) as Proof rows and links skills by repo topic and primary language. Forks and archived repos are skipped. Set`GITHUB_USER`, optional `GITHUB_TOKEN`. |
+| `link_check`             | Requests every proof URL and flags dead links (`link_ok`), shown on the dashboard and admin.                                                                                                |
+| `weekly_digest [--save]` | Prints a markdown plan: stale skills, unproven skills, funnel, reply rate per resume variant, next actions.`--save` stores this week's numbers as a `MetricSnapshot`.                       |
 
 ## What the dashboard shows
 
-- **Public page (`/`)**: the interactive decay curve, totals, a banner for skills with no proof, every
-  skill by freshness (staff can mark one revised in place with HTMX), recent proof, the application
-  funnel and reply rate by resume variant.
+- **Public page (`/`)**: the interactive decay curve (with a Play button), totals with a live
+  "points fading a day" ticker, a banner for skills with no proof, the half-life map, every skill by
+  freshness (staff can mark one revised in place with HTMX), every proof with a filter and kind chips,
+  the application funnel and reply rate by resume variant.
+- **Half-life map**: every skill plotted on one curve by half-lives idle (`0.5 ** n`), so skills with
+  different half-lives compare directly and the fresh/fading/stale bands are fixed. Skills with no
+  revision or proof sit in a "no proof" column. Hover or focus a pin for its name; click to jump to its row.
+- **Motion**: sections reveal on scroll, bars sweep in, totals count up. Mark revised refills the bar,
+  counts the percent up, floats a +N chip and slides the skill's pin back to the top of the map. All of
+  it is skipped under `prefers-reduced-motion`, and the page is complete without JavaScript.
 - **Admin home**: the same numbers for you, plus the five skills to revise next and weekly snapshots.
 - **API (`/api/v1/`)**: `skills/`, `proofs/`, `summary/` and `funnel/`, read-only, throttled, and the
   summary and funnel cached for 60 seconds.

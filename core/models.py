@@ -41,12 +41,16 @@ class Skill(models.Model):
         dates = [d for d in (self.last_revised_at, proof) if d]
         return max(dates) if dates else None
 
+    def days_idle(self):
+        """Whole days since the last revision or proof, or None if there has been neither."""
+        last = self.last_activity()
+        return (timezone.now() - last).days if last else None
+
     def freshness(self):
         # 1.0 right after a revision or proof, halving every half_life_days.
-        last = self.last_activity()
-        if last is None:
+        days = self.days_idle()
+        if days is None:
             return 0.0
-        days = (timezone.now() - last).days
         return round(math.exp(-math.log(2) * days / self.half_life_days), 2)
 
 

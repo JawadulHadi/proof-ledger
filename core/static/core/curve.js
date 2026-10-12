@@ -24,4 +24,23 @@
   day.addEventListener('input', draw);
   half.addEventListener('input', draw);
   draw();
+
+  // Play: sweep the day slider from 0 to 180 so you watch one skill fade through the tiers.
+  var play = $('play'), raf = 0;
+  var still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function stop() {
+    cancelAnimationFrame(raf); raf = 0;
+    play.setAttribute('aria-pressed', 'false'); play.textContent = 'Play 180 days';
+  }
+  function start() {
+    var from = +day.value >= 180 ? 0 : +day.value, t0 = performance.now();
+    play.setAttribute('aria-pressed', 'true'); play.textContent = 'Pause';
+    if (still) { day.value = 180; draw(); return stop(); }
+    (function tick(now) {
+      day.value = Math.min(180, Math.round(from + (now - t0) / 25)); draw();
+      if (+day.value < 180) raf = requestAnimationFrame(tick); else stop();
+    })(t0);
+  }
+  play.addEventListener('click', function () { raf ? stop() : start(); });
+  day.addEventListener('pointerdown', stop);
 })();

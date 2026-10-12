@@ -37,6 +37,9 @@ def test_staff_can_revise_via_htmx(client, django_user_model):
     skill = Skill.objects.create(name='Django', category='backend')
     resp = client.post(f'/skills/{skill.pk}/revise/')
     assert resp.status_code == 200
+    # The swapped-in row is marked so the dashboard plays the revive animation.
+    assert 'class="row revived"' in resp.content.decode()
+    assert 'data-pct="100"' in resp.content.decode()
     skill.refresh_from_db()
     assert skill.last_revised_at is not None
 
@@ -45,3 +48,24 @@ def test_staff_can_revise_via_htmx(client, django_user_model):
 def test_public_dashboard_renders(client):
     Skill.objects.create(name='Redis', category='data')
     assert client.get('/').status_code == 200
+
+
+@pytest.mark.django_db
+def test_sync_github_pages_through_every_repo_and_links_by_language():
+    ts = Skill.objects.create(name='TypeScript', category='backend')
+
+    def page(n, count, **extra):
+        fake = MagicMock()
+        fake.json.return_value = [
+            {'html_url': f'https://github.com/x/p{n}-{i}', 'name': f'p{n}-{i}',
+             'pushed_at': '2026-01-01T00:00:00Z', 'topics': [], 'fork': False, **extra}
+            for i in range(count)]
+        return fake
+
+    # A full first page means there may be more; the short second page ends the loop.
+    pages = [page(1, 100), page(2, 3, language='TypeScript')]
+    with patch('core.management.commands.sync_github.httpx.get', side_effect=pages) as get:
+        call_command('sync_github', stdout=StringIO())
+    assert [c.kwargs['params']['page'] for c in get.call_args_list] == [1, 2]
+    assert Proof.objects.count() == 103
+    assert ts.proofs.count() == 3
