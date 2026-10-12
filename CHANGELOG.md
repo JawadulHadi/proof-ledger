@@ -9,6 +9,10 @@ running or deploying the app, not a list of files.
 
 ## [Unreleased]
 
+### Security
+- The CI workflow's token is now read-only (`permissions: contents: read`) instead of inheriting
+  the repository default.
+
 ### Added
 - Vercel deployment on the Python runtime: `vercel.json` (build command, 30 s function limit,
   bundle exclusions), `vercel-build.sh`, `.python-version` (3.12), `.vercelignore`, and the
