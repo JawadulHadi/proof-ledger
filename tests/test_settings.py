@@ -4,6 +4,7 @@ Reloading the module doesn't touch django.conf.settings, which Django already bu
 original import, so the rest of the suite is unaffected.
 """
 import importlib
+from urllib.parse import urlparse
 
 import pytest
 
@@ -38,7 +39,10 @@ def test_vercel_hostnames_are_allowed_and_trusted_for_csrf(load_settings):
     s = load_settings(**VERCEL_ENV)
 
     assert {'proof-ledger.vercel.app', 'proof-ledger-abc123.vercel.app'} <= set(s.ALLOWED_HOSTS)
-    assert 'https://proof-ledger.vercel.app' in s.CSRF_TRUSTED_ORIGINS
+    trusted_origin_hosts = {
+        urlparse(origin).hostname for origin in s.CSRF_TRUSTED_ORIGINS if urlparse(origin).hostname
+    }
+    assert 'proof-ledger.vercel.app' in trusted_origin_hosts
 
 
 def test_vercel_defaults_debug_off_and_drops_persistent_connections(load_settings):
