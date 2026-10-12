@@ -19,6 +19,8 @@ running or deploying the app, not a list of files.
   troubleshooting.
 - `tests/test_settings.py` covering the Vercel and default settings paths.
 - This changelog.
+- `changelog` CI check: a pull request fails unless it changes `CHANGELOG.md` (label it
+  `skip-changelog` to opt out), matching the other proof repos.
 - `sync_github` flags: `--include-forks`, `--include-archived`, and `--prune` (deletes proofs for
   repos GitHub no longer lists, such as renamed or deleted ones).
 

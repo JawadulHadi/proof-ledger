@@ -102,7 +102,8 @@ pytest --cov=core --cov-fail-under=85
 
 Every change also adds an entry under **Unreleased** in `CHANGELOG.md` and updates the docs it
 affects (this README, `docs/`, and `NOTES.md` for mistakes). The pull request template has a
-checklist for it.
+checklist for it, and a CI job fails any pull request that skips the changelog (label it
+`skip-changelog` for changes that truly need none).
 
 ## Design notes
 
