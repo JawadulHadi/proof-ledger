@@ -40,7 +40,7 @@ Render happens at build time on Vercel.
    | `SECRET_KEY` | Production, Preview | A long random string, e.g. `python -c "import secrets; print(secrets.token_urlsafe(50))"` |
    | `DATABASE_URL` | Production, Preview | The Neon pooled connection string |
    | `GITHUB_USER` | Production, Preview | `JawadulHadi` |
-   | `GITHUB_TOKEN` | Production | Optional; raises the GitHub API rate limit for `sync_github` |
+   | `GITHUB_TOKEN` | Production | Optional; lets `sync_github` include private repos and raises the API rate limit |
    | `DJANGO_SUPERUSER_USERNAME` | Production | Admin login created on the first production build |
    | `DJANGO_SUPERUSER_EMAIL` | Production | Admin email |
    | `DJANGO_SUPERUSER_PASSWORD` | Production | Admin password |
@@ -89,7 +89,7 @@ vercel --prod               # production deploy
   ```bash
   vercel env pull .env.local
   set -a; . ./.env.local; set +a
-  python manage.py sync_github
+  python manage.py sync_github --prune   # GITHUB_TOKEN set: counts private repos too
   ```
 
   Scheduling them is on the roadmap. Options are Vercel Cron (once a day on the Hobby plan, calling

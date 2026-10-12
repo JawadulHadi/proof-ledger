@@ -19,6 +19,8 @@ running or deploying the app, not a list of files.
   troubleshooting.
 - `tests/test_settings.py` covering the Vercel and default settings paths.
 - This changelog.
+- `sync_github` flags: `--include-forks`, `--include-archived`, and `--prune` (deletes proofs for
+  repos GitHub no longer lists, such as renamed or deleted ones).
 
 ### Changed
 - On Vercel (`VERCEL` set), `DEBUG` defaults to off, the production, branch and deployment
@@ -27,6 +29,10 @@ running or deploying the app, not a list of files.
 - On Vercel, a missing `DATABASE_URL` stops startup with a clear error. It no longer falls back to
   SQLite, which can't write to the read-only filesystem.
 - README "Deploy" section now covers Vercel, with Render and Docker kept as fallbacks.
+- `sync_github` now reads every repo the account owns. With `GITHUB_TOKEN` set it uses the
+  authenticated `/user/repos` endpoint, so private repos count too; without a token it still sees
+  public repos only. It prints how many repos it found and how many it skipped as forks or archived,
+  so a short count is explained instead of silent.
 
 ## 2026-10-12: Dashboard motion and review fixes (#3)
 
