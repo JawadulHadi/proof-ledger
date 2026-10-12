@@ -9,3 +9,7 @@ select = ['E', 'F', 'I', 'B', 'DJ']
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = 'config.settings'
 python_files = ['test_*.py']
+
+# Vercel's Django preset finds WSGI_APPLICATION on its own; this pins it explicitly.
+[tool.vercel]
+entrypoint = 'config.wsgi:application'

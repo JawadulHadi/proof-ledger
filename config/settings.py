@@ -5,14 +5,22 @@ import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Vercel sets VERCEL=1 at build time and at runtime.
+ON_VERCEL = bool(os.environ.get('VERCEL'))
+
 SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-only-change-me')
-DEBUG = os.environ.get('DEBUG', '1') == '1'
+# Off by default on Vercel, so a missing DEBUG variable can't ship debug pages to production.
+DEBUG = os.environ.get('DEBUG', '0' if ON_VERCEL else '1') == '1'
 if not DEBUG and SECRET_KEY == 'dev-only-change-me':
     raise RuntimeError('set SECRET_KEY when DEBUG is off')
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 # Render sets this to the service's public hostname.
 if os.environ.get('RENDER_EXTERNAL_HOSTNAME'):
     ALLOWED_HOSTS.append(os.environ['RENDER_EXTERNAL_HOSTNAME'])
+# Vercel sets these to bare hostnames: the production domain, the branch alias and this deployment.
+for _var in ('VERCEL_PROJECT_PRODUCTION_URL', 'VERCEL_BRANCH_URL', 'VERCEL_URL'):
+    if os.environ.get(_var):
+        ALLOWED_HOSTS.append(os.environ[_var])
 _LOCAL = ('localhost', '127.0.0.1')
 CSRF_TRUSTED_ORIGINS = [f'https://{h}' for h in ALLOWED_HOSTS if h not in _LOCAL]
 GITHUB_USER = os.environ.get('GITHUB_USER', 'JawadulHadi')
@@ -55,9 +63,14 @@ TEMPLATES = [{
 }]
 
 if os.environ.get('DATABASE_URL'):
-    # Hosted Postgres (e.g. Neon) as a single URL.
+    # Hosted Postgres (e.g. Neon) as a single URL. Serverless instances on Vercel come and go,
+    # so they don't hold connections open: use Neon's pooled (-pooler) URL there instead.
     DATABASES = {'default': dj_database_url.parse(
-        os.environ['DATABASE_URL'], conn_max_age=600, conn_health_checks=True)}
+        os.environ['DATABASE_URL'], conn_health_checks=True,
+        conn_max_age=int(os.environ.get('DB_CONN_MAX_AGE', 0 if ON_VERCEL else 600)))}
+elif ON_VERCEL:
+    # The SQLite fallback below can't work there: the deployed filesystem is read-only.
+    raise RuntimeError('set DATABASE_URL on Vercel (Production and Preview environments)')
 elif os.environ.get('POSTGRES_DB'):
     DATABASES = {'default': {
         'ENGINE': 'django.db.backends.postgresql',
