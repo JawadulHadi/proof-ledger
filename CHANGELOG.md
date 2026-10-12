@@ -12,6 +12,7 @@ running or deploying the app, not a list of files.
 ### Security
 - The CI workflow's token is now read-only (`permissions: contents: read`) instead of inheriting
   the repository default.
+- The `changelog` CI workflow now limits its token to read-only repository access.
 
 ### Added
 - Vercel deployment on the Python runtime: `vercel.json` (build command, 30 s function limit,
@@ -42,8 +43,10 @@ running or deploying the app, not a list of files.
   public repos only. It prints how many repos it found and how many it skipped as forks or archived,
   so a short count is explained instead of silent.
 
-### Security
-- The `changelog` CI workflow now limits its token to read-only repository access.
+### Fixed
+- Vercel builds no longer fail at dependency install with "No `project` table found". `pyproject.toml`
+  now has a `[project]` table listing the same runtime dependencies as `requirements.txt`, and
+  `tests/test_deploy_config.py` fails if the two drift apart.
 
 ## 2026-10-12: Dashboard motion and review fixes (#3)
 

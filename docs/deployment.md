@@ -106,6 +106,7 @@ vercel --prod               # production deploy
 | `400 Bad Request` on a custom domain | Add the domain to `ALLOWED_HOSTS`. |
 | `403 CSRF verification failed` on admin login | Same: the host has to be in `ALLOWED_HOSTS` to be trusted for CSRF. |
 | `500` with `Missing staticfiles manifest entry` | `collectstatic` didn't run. Check that the build log shows `vercel-build.sh` and the "static files copied" line. |
+| Build fails with ``No `project` table found in pyproject.toml`` | Vercel installs dependencies from `pyproject.toml` with `uv`, which needs a `[project]` table. It's there now; keep its `dependencies` in step with `requirements.txt` (a test checks this). |
 | Admin user not created | The `DJANGO_SUPERUSER_*` variables must be set for **Production**; they're only used on production builds. |
 
 ## Render (fallback)
