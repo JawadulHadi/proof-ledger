@@ -12,8 +12,10 @@ blueprint is still in the repo as a fallback (see [Render](#render-fallback) bel
 
 ## How a Vercel deploy works
 
-1. Vercel detects Django from `manage.py` and installs `requirements.txt` with Python 3.12
-   (`.python-version`).
+1. Vercel detects Django from `manage.py` and installs the `[project]` dependencies from
+   `pyproject.toml` with `uv`, using Python 3.12 (`.python-version`). Because `pyproject.toml`
+   exists, Vercel doesn't read `requirements.txt`. Docker and Render still use it, so keep both
+   lists identical (`tests/test_packaging.py` fails if they drift).
 2. `vercel-build.sh` runs (`buildCommand` in `vercel.json`):
    - `collectstatic` writes hashed, compressed files to `staticfiles/`.
    - **Production builds only** (`VERCEL_ENV=production`): `migrate`, `seed_demo`, and a one-time
@@ -101,6 +103,7 @@ vercel --prod               # production deploy
 
 | Symptom | Cause and fix |
 | --- | --- |
+| Build fails with ``No `project` table found in: /vercel/path0/pyproject.toml`` | Vercel installs from `pyproject.toml` when it exists, and that file needs a `[project]` table with the dependencies. Add a dependency in both `pyproject.toml` and `requirements.txt`. |
 | Build fails with `set DATABASE_URL on Vercel` | `DATABASE_URL` is missing for that environment (Production or Preview). Add it and redeploy. |
 | Build fails with `set SECRET_KEY when DEBUG is off` | `SECRET_KEY` is missing for that environment. |
 | `400 Bad Request` on a custom domain | Add the domain to `ALLOWED_HOSTS`. |
