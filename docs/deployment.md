@@ -28,8 +28,10 @@ Render happens at build time on Vercel.
 
 ## First-time setup
 
-1. **Database.** Create a Neon project in the same region as your Vercel functions (Vercel's
-   default is Washington, D.C., `iad1`, so pick AWS `us-east-1`). Copy the **pooled** connection
+1. **Database.** Create a Neon project in the same region as your Vercel functions.
+   `vercel.json` pins the functions to São Paulo (`"regions": ["gru1"]`) because the live Neon
+   project is in AWS `sa-east-1`. If you use a Neon project elsewhere, change `regions` to the
+   nearest Vercel region, or every query crosses a continent. Copy the **pooled** connection
    string, the one whose host contains `-pooler`.
 2. **Project.** In Vercel: Add New, Project, import `JawadulHadi/proof-ledger`. Leave the framework,
    build and output settings at their defaults; `vercel.json` sets them.
