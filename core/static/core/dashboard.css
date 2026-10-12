@@ -3,6 +3,7 @@
   --bg: #eef3f7; --surface: #fff; --ink: #0f1b2d; --muted: #51647a; --line: #d5dee8;
   --fresh: #12806a; --warn: #a86b00; --stale: #c0364a; --accent: #3a56f0;
   --radius: 14px; --space: 1rem;
+  --ease-out: cubic-bezier(.2, .8, .2, 1); --ease-spring: cubic-bezier(.34, 1.56, .64, 1);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -35,7 +36,9 @@ svg text { fill: var(--muted); font-size: 11px; }
 .ctl { display: grid; gap: .15rem; margin-top: .75rem; }
 .ctl label { display: flex; justify-content: space-between; font-size: .9rem; }
 input[type=range] { width: 100%; accent-color: var(--accent); min-height: 2rem; }
-#readout { margin-top: .75rem; font-weight: 600; }
+#readout { font-weight: 600; }
+.play-row { display: flex; flex-wrap: wrap; gap: .5rem .9rem; align-items: center; margin-top: .75rem; }
+#play[aria-pressed="true"] { background: var(--accent); color: var(--bg); }
 .stats { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); margin-bottom: 2.5rem; padding: 0; list-style: none; }
 .stats li { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: .85rem 1rem; }
 .stats b { display: block; font-size: 1.8rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
@@ -74,7 +77,94 @@ th { color: var(--muted); font-weight: 600; font-size: .9rem; }
 td.num, th.num { text-align: right; }
 .proofs { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); list-style: none; padding: 0; margin: 1rem 0 0; }
 .proofs .meta { margin-top: .25rem; }
+.proofs .name { overflow-wrap: anywhere; }
+.section-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: .25rem 1rem; }
+.proof-tools { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin-top: .75rem; }
+.proof-tools[hidden], .more[hidden] { display: none; }
+#proof-q { font: inherit; flex: 1 1 14rem; min-height: 2.5rem; padding: 0 .85rem; border-radius: 99px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink); transition: border-color .2s, box-shadow .2s; }
+#proof-q:focus { border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent); outline: none; }
+.chips { display: flex; flex-wrap: wrap; gap: .4rem; }
+.chip { border-radius: 99px; border-color: var(--line); color: var(--ink); min-height: 2.25rem; transition: background .2s, border-color .2s, color .2s; }
+.chip span { color: var(--muted); font-variant-numeric: tabular-nums; margin-left: .2rem; }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+.chip[aria-pressed="true"] span { color: inherit; opacity: .8; }
+.skill-tags { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .55rem; }
+.skill-tags span { font-size: .78rem; padding: .1rem .5rem; border-radius: 99px; background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); }
+.more { display: block; margin: 1rem auto 0; }
 .two { display: grid; gap: 2rem; }
 @media (min-width: 60rem) { .two { grid-template-columns: 1fr 1fr; } }
 footer { color: var(--muted); font-size: .9rem; }
+
+/* ---- Motion. Everything below is decoration: with JS off or reduced motion, the page is complete. */
+
+/* Curves draw themselves in (pathLength="100" normalizes the dash to the path). */
+#curve, .hl-curve { stroke-dasharray: 100; }
+#curve { animation: draw 1.6s var(--ease-out) both; }
+.js .reveal:not(.in) .hl-curve { stroke-dashoffset: 100; }
+.reveal.in .hl-curve { animation: draw 1.4s var(--ease-out) both; }
+@keyframes draw { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
+
+/* Sections rise in as they scroll into view. */
+.js .reveal { opacity: 0; transform: translateY(18px); transition: opacity .6s var(--ease-out), transform .6s var(--ease-out); }
+.js .reveal.in { opacity: 1; transform: none; }
+
+/* Bars sweep in left to right, staggered by row (--i). clip-path keeps the rounded ends intact. */
+.js .reveal:not(.in) .bar i { clip-path: inset(0 100% 0 0 round 99px); }
+.reveal.in .bar i { animation: sweep .9s var(--ease-out) backwards; animation-delay: calc(min(var(--i, 0), 14) * 45ms + 150ms); }
+@keyframes sweep { from { clip-path: inset(0 100% 0 0 round 99px); } to { clip-path: inset(0 0 0 0 round 99px); } }
+
+/* Proof cards and stat tiles pop in one after another. */
+.js .reveal:not(.in) .proofs > li { opacity: 0; }
+.reveal.in .proofs > li { animation: pop .55s var(--ease-spring) backwards; animation-delay: calc(min(var(--i, 0), 12) * 45ms + 80ms); }
+.stats.in > li { animation: pop .55s var(--ease-spring) backwards; }
+.stats.in > li:nth-child(2) { animation-delay: 60ms; } .stats.in > li:nth-child(3) { animation-delay: 120ms; }
+.stats.in > li:nth-child(4) { animation-delay: 180ms; } .stats.in > li:nth-child(5) { animation-delay: 240ms; }
+@keyframes pop { from { opacity: 0; transform: translateY(10px) scale(.96); } }
+.proofs .card { transition: transform .25s var(--ease-out), border-color .25s; }
+.proofs .card:hover { transform: translateY(-3px); border-color: var(--accent); }
+
+/* Decay tile: the live ticker. */
+.stats .decay b { color: var(--warn); }
+.stats small { display: block; margin-top: .2rem; font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; min-height: 1.1em; }
+
+/* Half-life map. */
+.map { padding: .75rem; }
+.band { opacity: .08; } .band.fresh { fill: var(--fresh); } .band.fading { fill: var(--warn); } .band.stale { fill: var(--stale); }
+svg text.band-label { font-weight: 700; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; }
+svg text.fresh { fill: var(--fresh); } svg text.fading { fill: var(--warn); } svg text.stale { fill: var(--stale); }
+.divider { stroke: var(--line); stroke-dasharray: 2 4; }
+.hl-curve { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linecap: round; }
+.hl-area { fill: var(--accent); opacity: .06; }
+.pin { cursor: pointer; outline: none; }
+.pin .core { fill: currentColor; stroke: var(--surface); stroke-width: 2.5; transition: r .2s var(--ease-spring); }
+.pin .halo { fill: currentColor; opacity: .3; transform-box: fill-box; transform-origin: center; }
+.pin:hover .core, .pin:focus-visible .core { r: 8.5; }
+.pin:focus-visible .halo { opacity: .5; transform: scale(2); }
+.pin.stale .halo { animation: ping 2.4s var(--ease-out) infinite; animation-delay: calc(var(--i, 0) * 160ms); }
+@keyframes ping { 0% { transform: scale(1); opacity: .45; } 80%, 100% { transform: scale(3.2); opacity: 0; } }
+.js .reveal:not(.in) .pin.flat { opacity: 0; }
+.reveal.in .pin.flat .dot { animation: drop .7s var(--ease-spring) backwards; animation-delay: calc(var(--i, 0) * 60ms + 900ms); }
+@keyframes drop { from { opacity: 0; transform: translateY(-40px); } }
+.tip { opacity: 0; pointer-events: none; transition: opacity .15s; }
+.tip.on { opacity: 1; }
+.tip rect { fill: var(--ink); }
+svg .tip text { fill: var(--bg); font-size: 12px; font-weight: 600; }
+.decay-note { margin-top: .9rem; }
+
+/* A pin click jumps to its row; the row flashes so the eye lands on it. */
+.row:target { animation: flash 1.8s var(--ease-out); scroll-margin-top: 30vh; }
+@keyframes flash { from { background: color-mix(in srgb, var(--accent) 18%, transparent); } }
+
+/* Mark revised: the row glows, the bar refills (width transition, from the HTMX settle step),
+   and a +N chip floats up. */
+.skills .row { position: relative; }
+.row.revived { animation: revive 1.6s var(--ease-out); }
+.row.revived .bar i { animation: none; clip-path: none; box-shadow: 0 0 12px color-mix(in srgb, var(--fresh) 60%, transparent); }
+.row.revived .tag { animation: pop .5s var(--ease-spring); }
+@keyframes revive { 0% { background: color-mix(in srgb, var(--fresh) 22%, transparent); } 100% { background: transparent; } }
+.gain { position: absolute; right: 0; top: .2rem; font-weight: 700; color: var(--fresh); pointer-events: none;
+  animation: float-up 1.4s var(--ease-out) forwards; }
+@keyframes float-up { from { opacity: 0; transform: translateY(6px); } 20% { opacity: 1; } to { opacity: 0; transform: translateY(-26px); } }
+
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

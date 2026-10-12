@@ -7,6 +7,9 @@ from django.utils.dateparse import parse_datetime
 
 from core.models import Proof, Skill
 
+PER_PAGE = 100
+MAX_PAGES = 10
+
 
 def topic_index():
     """Map each GitHub topic to the skills it proves (skill name or one of its github_topics)."""
@@ -30,16 +33,23 @@ class Command(BaseCommand):
         if token:
             headers['Authorization'] = f'Bearer {token}'
         url = f'https://api.github.com/users/{settings.GITHUB_USER}/repos'
-        try:
-            resp = httpx.get(url, params={'per_page': 100, 'sort': 'pushed'}, headers=headers,
-                             timeout=20)
-            resp.raise_for_status()
-        except httpx.HTTPError as exc:
-            raise CommandError(f'GitHub sync failed: {exc}') from exc
+        repos = []
+        # GitHub pages at 100 repos; keep going until a short page (capped at 1,000 repos).
+        for page in range(1, MAX_PAGES + 1):
+            try:
+                resp = httpx.get(url, params={'per_page': PER_PAGE, 'sort': 'pushed', 'page': page},
+                                 headers=headers, timeout=20)
+                resp.raise_for_status()
+            except httpx.HTTPError as exc:
+                raise CommandError(f'GitHub sync failed: {exc}') from exc
+            batch = resp.json()
+            repos.extend(batch)
+            if len(batch) < PER_PAGE:
+                break
 
         index = topic_index()
         synced = linked = 0
-        for repo in resp.json():
+        for repo in repos:
             if repo.get('archived') or (repo.get('fork') and not options['include_forks']):
                 continue
             proof, _ = Proof.objects.update_or_create(
@@ -50,7 +60,11 @@ class Command(BaseCommand):
                     'occurred_at': parse_datetime(repo['pushed_at']),
                 },
             )
-            skills = {s.pk: s for topic in repo.get('topics', []) for s in index.get(topic, [])}
+            # Topics plus the repo's primary language: a TypeScript repo proves TypeScript.
+            topics = list(repo.get('topics') or [])
+            if repo.get('language'):
+                topics.append(repo['language'].lower().replace(' ', '-'))
+            skills = {s.pk: s for topic in topics for s in index.get(topic, [])}
             if skills:
                 proof.skills.add(*skills.values())
                 linked += len(skills)

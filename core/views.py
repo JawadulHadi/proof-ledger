@@ -20,4 +20,4 @@ def revise(request, pk):
     skill.save(update_fields=['last_revised_at'])
     skill.proof_count = skill.proofs.count()
     decorate(skill)
-    return render(request, 'core/_skill_row.html', {'s': skill})
+    return render(request, 'core/_skill_row.html', {'s': skill, 'revived': True})
