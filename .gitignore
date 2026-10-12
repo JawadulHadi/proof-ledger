@@ -22,3 +22,7 @@ staticfiles/
 
 # Vercel CLI project link
 .vercel/
+
+# Editor and agent folders
+.vscode/
+.claude/
