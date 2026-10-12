@@ -19,3 +19,6 @@ htmlcov/
 # Django
 db.sqlite3
 staticfiles/
+
+# Vercel CLI project link
+.vercel/

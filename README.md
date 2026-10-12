@@ -100,6 +100,10 @@ ruff check .
 pytest --cov=core --cov-fail-under=85
 ```
 
+Every change also adds an entry under **Unreleased** in `CHANGELOG.md` and updates the docs it
+affects (this README, `docs/`, and `NOTES.md` for mistakes). The pull request template has a
+checklist for it.
+
 ## Design notes
 
 - Freshness is `exp(-ln2 * days / half_life)`, tested with frozen time.
@@ -111,17 +115,18 @@ pytest --cov=core --cov-fail-under=85
 
 ## Deploy (free)
 
-A **Render free Python web service** and a **Neon free Postgres** project (Render's free Postgres is
-deleted after 30 days; Neon's does not expire). `render.yaml` is the blueprint: `build.sh` installs and
-collects static files (served by WhiteNoise), `start.sh` migrates, seeds, creates the admin user once
-from `DJANGO_SUPERUSER_*`, then runs gunicorn.
+**Vercel** (Python runtime) with a **Neon** Postgres database. The full guide is in
+[docs/deployment.md](docs/deployment.md); the short version:
 
-In Render: New, Blueprint, pick this repo, then set `DATABASE_URL` (Neon connection string) and the
-`DJANGO_SUPERUSER_*` values. `SECRET_KEY` is generated, and Render's hostname is added to `ALLOWED_HOSTS`.
+1. Create a Neon project in AWS `us-east-1` and copy its **pooled** connection string.
+2. Import the repo in Vercel. `vercel.json` sets the build (`vercel-build.sh`) and the function
+   (`config/wsgi.py`).
+3. Set `SECRET_KEY` and `DATABASE_URL` (Production and Preview), plus `DJANGO_SUPERUSER_*`
+   (Production) to create the admin user on the first production build.
+4. Push to `main`. Production builds migrate and seed; preview builds never touch the schema.
 
-- Free instances sleep after about 15 minutes idle.
-- The Docker image was built and run locally with `DEBUG=0` against Postgres 16: dashboard, API, admin
-  login and static files all returned 200.
+`DEBUG` defaults to off on Vercel and the `*.vercel.app` hostnames are allowed automatically.
+`render.yaml` and the `Dockerfile` are kept as fallbacks; see the guide.
 
 ## Roadmap
 
@@ -131,4 +136,4 @@ In Render: New, Blueprint, pick this repo, then set `DATABASE_URL` (Neon connect
 - [ ] LLM-drafted STAR answers through a provider gateway
 - [ ] React rebuild of the dashboard (`proof-ledger-ui`)
 
-See `NOTES.md` for mistakes made and fixed.
+See `CHANGELOG.md` for what changed in each release and `NOTES.md` for mistakes made and fixed.
