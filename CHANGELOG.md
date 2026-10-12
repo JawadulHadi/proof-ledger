@@ -29,6 +29,8 @@ running or deploying the app, not a list of files.
   repos GitHub no longer lists, such as renamed or deleted ones).
 
 ### Changed
+- Vercel functions run in São Paulo (`gru1`) to sit next to the Neon database in `sa-east-1`,
+  instead of Vercel's default Washington, D.C. region.
 - On Vercel (`VERCEL` set), `DEBUG` defaults to off, the production, branch and deployment
   hostnames are added to `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS`, and database connections
   aren't kept between requests (`CONN_MAX_AGE` 0; override with `DB_CONN_MAX_AGE`).
