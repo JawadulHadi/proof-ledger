@@ -36,6 +36,9 @@ running or deploying the app, not a list of files.
   public repos only. It prints how many repos it found and how many it skipped as forks or archived,
   so a short count is explained instead of silent.
 
+### Security
+- The `changelog` CI workflow now limits its token to read-only repository access.
+
 ## 2026-10-12: Dashboard motion and review fixes (#3)
 
 ### Added
