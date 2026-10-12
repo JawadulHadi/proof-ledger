@@ -42,6 +42,12 @@ running or deploying the app, not a list of files.
   public repos only. It prints how many repos it found and how many it skipped as forks or archived,
   so a short count is explained instead of silent.
 
+### Fixed
+- Vercel builds failed at the install step with ``No `project` table found``: when
+  `pyproject.toml` exists, Vercel installs from it with `uv` instead of reading `requirements.txt`.
+  `pyproject.toml` now has a `[project]` table with the same dependencies, and a test keeps the two
+  lists identical.
+
 ### Security
 - The `changelog` CI workflow now limits its token to read-only repository access.
 
