@@ -9,6 +9,10 @@ running or deploying the app, not a list of files.
 
 ## [Unreleased]
 
+### Removed
+- `.vscode/changelists.json` from the repository (it stays on disk locally). `.gitignore` now
+  ignores `.vscode/` and `.claude/` so editor and agent folders aren't committed again.
+
 ### Security
 - The CI workflow's token is now read-only (`permissions: contents: read`) instead of inheriting
   the repository default.
