@@ -43,7 +43,7 @@ flowchart LR
     Agg & API & Revise --> Models
     Models --> DB[("SQLite by default<br/>PostgreSQL 16 when POSTGRES_DB set")]
 
-    Cmds -- "sync_github: repos → Proof,<br/>topics matched to Skill names" --> GH[("GitHub REST API<br/>/users/GITHUB_USER/repos")]
+    Cmds -- "sync_github: repos → Proof,<br/>topics matched to Skill names" --> GH[("GitHub REST API<br/>/user/repos (token) or<br/>/users/GITHUB_USER/repos")]
 ```
 
 ## Run it
@@ -68,7 +68,7 @@ Or with Postgres: `docker compose up`.
 | Command                  | What it does                                                                                                                                                                                |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `seed_demo`              | Creates starter skills (with GitHub topic aliases) and resume variants. Edit levels to be honest.                                                                                           |
-| `sync_github`            | Pulls all your public repos (paginated) as Proof rows and links skills by repo topic and primary language. Forks and archived repos are skipped. Set`GITHUB_USER`, optional `GITHUB_TOKEN`. |
+| `sync_github`            | Pulls every repo `GITHUB_USER` owns (paginated) as Proof rows and links skills by repo topic and primary language. Without `GITHUB_TOKEN` only public repos are visible; with it, private repos are included too. Forks and archived repos are skipped unless you pass `--include-forks` / `--include-archived`; `--prune` deletes proofs for repos GitHub no longer lists (renamed or deleted). It prints how many repos it found and why any were skipped. |
 | `link_check`             | Requests every proof URL and flags dead links (`link_ok`), shown on the dashboard and admin.                                                                                                |
 | `weekly_digest [--save]` | Prints a markdown plan: stale skills, unproven skills, funnel, reply rate per resume variant, next actions.`--save` stores this week's numbers as a `MetricSnapshot`.                       |
 

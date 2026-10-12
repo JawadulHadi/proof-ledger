@@ -69,3 +69,72 @@ def test_sync_github_pages_through_every_repo_and_links_by_language():
     assert [c.kwargs['params']['page'] for c in get.call_args_list] == [1, 2]
     assert Proof.objects.count() == 103
     assert ts.proofs.count() == 3
+
+
+def _repo(name, owner='JawadulHadi', **extra):
+    return {'html_url': f'https://github.com/{owner}/{name}', 'name': name,
+            'owner': {'login': owner}, 'pushed_at': '2026-01-01T00:00:00Z', 'topics': [],
+            'fork': False, **extra}
+
+
+def _response(repos):
+    fake = MagicMock()
+    fake.json.return_value = repos
+    return fake
+
+
+@pytest.mark.django_db
+def test_sync_github_with_token_counts_private_and_ignores_other_owners(monkeypatch, settings):
+    settings.GITHUB_USER = 'JawadulHadi'
+    monkeypatch.setenv('GITHUB_TOKEN', 't')
+    repos = [_repo('public-one'), _repo('private-one', private=True),
+             _repo('theirs', owner='someone')]
+    out = StringIO()
+    with patch('core.management.commands.sync_github.httpx.get',
+               return_value=_response(repos)) as get:
+        call_command('sync_github', stdout=out)
+    # The authenticated endpoint is the one that includes private repos.
+    assert get.call_args.args[0] == 'https://api.github.com/user/repos'
+    assert get.call_args.kwargs['params']['visibility'] == 'all'
+    assert sorted(Proof.objects.values_list('title', flat=True)) == ['private-one', 'public-one']
+    assert 'Synced 2 (1 private)' in out.getvalue()
+
+
+@pytest.mark.django_db
+def test_sync_github_reports_skipped_forks_and_archived(monkeypatch):
+    monkeypatch.delenv('GITHUB_TOKEN', raising=False)
+    repos = [_repo('mine'), _repo('forked', fork=True), _repo('old', archived=True)]
+    out = StringIO()
+    with patch('core.management.commands.sync_github.httpx.get', return_value=_response(repos)):
+        call_command('sync_github', stdout=out)
+    assert list(Proof.objects.values_list('title', flat=True)) == ['mine']
+    assert 'Skipped 1 forks and 1 archived' in out.getvalue()
+    assert 'public only' in out.getvalue()
+
+    with patch('core.management.commands.sync_github.httpx.get', return_value=_response(repos)):
+        call_command('sync_github', '--include-archived', '--include-forks', stdout=StringIO())
+    assert Proof.objects.count() == 3
+
+
+@pytest.mark.django_db
+def test_sync_github_prune_removes_only_this_users_vanished_repos(monkeypatch, settings):
+    settings.GITHUB_USER = 'JawadulHadi'
+    monkeypatch.delenv('GITHUB_TOKEN', raising=False)
+    Proof.objects.create(title='renamed-away', kind=Proof.Kind.REPO,
+                         url='https://github.com/JawadulHadi/renamed-away')
+    Proof.objects.create(title='someone else', kind=Proof.Kind.REPO,
+                         url='https://github.com/someone/thing')
+    Proof.objects.create(title='a talk', kind=Proof.Kind.CASE,
+                         url='https://github.com/JawadulHadi/talk')
+    with patch('core.management.commands.sync_github.httpx.get',
+               return_value=_response([_repo('kept')])):
+        call_command('sync_github', stdout=StringIO())
+    assert Proof.objects.filter(title='renamed-away').exists()  # no --prune: nothing deleted
+
+    out = StringIO()
+    with patch('core.management.commands.sync_github.httpx.get',
+               return_value=_response([_repo('kept')])):
+        call_command('sync_github', '--prune', stdout=out)
+    titles = sorted(Proof.objects.values_list('title', flat=True))
+    assert titles == ['a talk', 'kept', 'someone else']
+    assert 'Pruned 1 stale' in out.getvalue()
