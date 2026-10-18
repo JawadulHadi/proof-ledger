@@ -9,6 +9,14 @@ running or deploying the app, not a list of files.
 
 ## [Unreleased]
 
+### Removed
+- `.vscode/changelists.json` from the repository (it stays on disk locally). `.gitignore` now
+  ignores `.vscode/` and `.claude/` so editor and agent folders aren't committed again.
+
+### Security
+- The CI workflow's token is now read-only (`permissions: contents: read`) instead of inheriting
+  the repository default.
+
 ### Added
 - Vercel deployment on the Python runtime: `vercel.json` (build command, 30 s function limit,
   bundle exclusions), `vercel-build.sh`, `.python-version` (3.12), `.vercelignore`, and the
@@ -19,14 +27,33 @@ running or deploying the app, not a list of files.
   troubleshooting.
 - `tests/test_settings.py` covering the Vercel and default settings paths.
 - This changelog.
+- `changelog` CI check: a pull request fails unless it changes `CHANGELOG.md` (label it
+  `skip-changelog` to opt out), matching the other proof repos.
+- `sync_github` flags: `--include-forks`, `--include-archived`, and `--prune` (deletes proofs for
+  repos GitHub no longer lists, such as renamed or deleted ones).
 
 ### Changed
+- Vercel functions run in São Paulo (`gru1`) to sit next to the Neon database in `sa-east-1`,
+  instead of Vercel's default Washington, D.C. region.
 - On Vercel (`VERCEL` set), `DEBUG` defaults to off, the production, branch and deployment
   hostnames are added to `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS`, and database connections
   aren't kept between requests (`CONN_MAX_AGE` 0; override with `DB_CONN_MAX_AGE`).
 - On Vercel, a missing `DATABASE_URL` stops startup with a clear error. It no longer falls back to
   SQLite, which can't write to the read-only filesystem.
 - README "Deploy" section now covers Vercel, with Render and Docker kept as fallbacks.
+- `sync_github` now reads every repo the account owns. With `GITHUB_TOKEN` set it uses the
+  authenticated `/user/repos` endpoint, so private repos count too; without a token it still sees
+  public repos only. It prints how many repos it found and how many it skipped as forks or archived,
+  so a short count is explained instead of silent.
+
+### Fixed
+- Vercel builds failed at the install step with ``No `project` table found``: when
+  `pyproject.toml` exists, Vercel installs from it with `uv` instead of reading `requirements.txt`.
+  `pyproject.toml` now has a `[project]` table with the same dependencies, and a test keeps the two
+  lists identical.
+
+### Security
+- The `changelog` CI workflow now limits its token to read-only repository access.
 
 ## 2026-10-12: Dashboard motion and review fixes (#3)
 

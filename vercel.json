@@ -1,6 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "sh vercel-build.sh",
+  "regions": [
+    "gru1"
+  ],
   "functions": {
     "config/wsgi.py": {
       "maxDuration": 30,

@@ -12,8 +12,10 @@ blueprint is still in the repo as a fallback (see [Render](#render-fallback) bel
 
 ## How a Vercel deploy works
 
-1. Vercel detects Django from `manage.py` and installs `requirements.txt` with Python 3.12
-   (`.python-version`).
+1. Vercel detects Django from `manage.py` and installs the `[project]` dependencies from
+   `pyproject.toml` with `uv`, using Python 3.12 (`.python-version`). Because `pyproject.toml`
+   exists, Vercel doesn't read `requirements.txt`. Docker and Render still use it, so keep both
+   lists identical (`tests/test_packaging.py` fails if they drift).
 2. `vercel-build.sh` runs (`buildCommand` in `vercel.json`):
    - `collectstatic` writes hashed, compressed files to `staticfiles/`.
    - **Production builds only** (`VERCEL_ENV=production`): `migrate`, `seed_demo`, and a one-time
@@ -28,8 +30,10 @@ Render happens at build time on Vercel.
 
 ## First-time setup
 
-1. **Database.** Create a Neon project in the same region as your Vercel functions (Vercel's
-   default is Washington, D.C., `iad1`, so pick AWS `us-east-1`). Copy the **pooled** connection
+1. **Database.** Create a Neon project in the same region as your Vercel functions.
+   `vercel.json` pins the functions to São Paulo (`"regions": ["gru1"]`) because the live Neon
+   project is in AWS `sa-east-1`. If you use a Neon project elsewhere, change `regions` to the
+   nearest Vercel region, or every query crosses a continent. Copy the **pooled** connection
    string, the one whose host contains `-pooler`.
 2. **Project.** In Vercel: Add New, Project, import `JawadulHadi/proof-ledger`. Leave the framework,
    build and output settings at their defaults; `vercel.json` sets them.
@@ -40,7 +44,7 @@ Render happens at build time on Vercel.
    | `SECRET_KEY` | Production, Preview | A long random string, e.g. `python -c "import secrets; print(secrets.token_urlsafe(50))"` |
    | `DATABASE_URL` | Production, Preview | The Neon pooled connection string |
    | `GITHUB_USER` | Production, Preview | `JawadulHadi` |
-   | `GITHUB_TOKEN` | Production | Optional; raises the GitHub API rate limit for `sync_github` |
+   | `GITHUB_TOKEN` | Production | Optional; lets `sync_github` include private repos and raises the API rate limit |
    | `DJANGO_SUPERUSER_USERNAME` | Production | Admin login created on the first production build |
    | `DJANGO_SUPERUSER_EMAIL` | Production | Admin email |
    | `DJANGO_SUPERUSER_PASSWORD` | Production | Admin password |
@@ -89,7 +93,7 @@ vercel --prod               # production deploy
   ```bash
   vercel env pull .env.local
   set -a; . ./.env.local; set +a
-  python manage.py sync_github
+  python manage.py sync_github --prune   # GITHUB_TOKEN set: counts private repos too
   ```
 
   Scheduling them is on the roadmap. Options are Vercel Cron (once a day on the Hobby plan, calling
@@ -99,6 +103,7 @@ vercel --prod               # production deploy
 
 | Symptom | Cause and fix |
 | --- | --- |
+| Build fails with ``No `project` table found in: /vercel/path0/pyproject.toml`` | Vercel installs from `pyproject.toml` when it exists, and that file needs a `[project]` table with the dependencies. Add a dependency in both `pyproject.toml` and `requirements.txt`. |
 | Build fails with `set DATABASE_URL on Vercel` | `DATABASE_URL` is missing for that environment (Production or Preview). Add it and redeploy. |
 | Build fails with `set SECRET_KEY when DEBUG is off` | `SECRET_KEY` is missing for that environment. |
 | `400 Bad Request` on a custom domain | Add the domain to `ALLOWED_HOSTS`. |
