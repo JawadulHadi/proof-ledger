@@ -1,5 +1,6 @@
 import math
 
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils import timezone
 
@@ -14,7 +15,10 @@ class Skill(models.Model):
     name = models.CharField(max_length=80, unique=True)
     category = models.CharField(max_length=40)  # backend, ai, data, frontend, devops
     level = models.IntegerField(choices=Level.choices, default=Level.WORKING)
-    half_life_days = models.PositiveIntegerField(default=90)
+    half_life_days = models.PositiveIntegerField(
+        default=90, validators=[MinValueValidator(1)],
+        help_text='Days for freshness to halve. Must be at least 1.',
+    )
     last_revised_at = models.DateTimeField(null=True, blank=True)
     # GitHub repo topics that count as proof of this skill, comma-separated (e.g. 'llm, agents').
     # sync_github also matches the skill name itself, so this is only needed for aliases.
@@ -49,7 +53,9 @@ class Skill(models.Model):
     def freshness(self):
         # 1.0 right after a revision or proof, halving every half_life_days.
         days = self.days_idle()
-        if days is None:
+        # A zero half-life cannot halve; treat it as fully stale instead of dividing by zero.
+        # The validator blocks new rows, but legacy rows can still hold 0.
+        if days is None or not self.half_life_days:
             return 0.0
         return round(math.exp(-math.log(2) * days / self.half_life_days), 2)
 

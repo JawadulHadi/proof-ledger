@@ -3,6 +3,7 @@ import os
 import httpx
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
+from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
 from core.models import Proof, Skill
@@ -82,12 +83,19 @@ class Command(BaseCommand):
             if repo.get('archived') and not options['include_archived']:
                 archived += 1
                 continue
+            # Empty GitHub repositories have pushed_at: null. Fall back to the other
+            # timestamps, then to now, so one empty repo cannot abort the whole sync.
+            occurred_at = None
+            for field in ('pushed_at', 'updated_at', 'created_at'):
+                occurred_at = parse_datetime(repo.get(field) or '')
+                if occurred_at:
+                    break
             proof, _ = Proof.objects.update_or_create(
                 url=repo['html_url'],
                 defaults={
                     'title': repo['name'],
                     'kind': Proof.Kind.REPO,
-                    'occurred_at': parse_datetime(repo['pushed_at']),
+                    'occurred_at': occurred_at or timezone.now(),
                 },
             )
             # Topics plus the repo's primary language: a TypeScript repo proves TypeScript.

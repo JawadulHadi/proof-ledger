@@ -23,7 +23,9 @@
 
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
   <main>
-    <div class="brand"><span>Proof Ledger</span>{% if user.is_staff %}<a href="{% url 'admin:index' %}">Admin</a>{% endif %}</div>
+    <div class="brand"><span>Proof Ledger</span>
+      <span class="brand-links"><a href="{% url 'dashboard_app' %}">Interactive dashboard</a>{% if user.is_staff %}<a href="{% url 'admin:index' %}">Admin</a>{% endif %}</span>
+    </div>
 
     <div class="hero">
       <div>

@@ -11,6 +11,11 @@ def dashboard(request):
     return render(request, 'core/dashboard.html', dashboard_context())
 
 
+def dashboard_app(request):
+    """React + TypeScript client. It reads the same public /api/v1/ endpoints."""
+    return render(request, 'core/app.html')
+
+
 @login_required
 @user_passes_test(lambda u: u.is_staff)
 @require_POST

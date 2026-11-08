@@ -7,6 +7,7 @@ blueprint is still in the repo as a fallback (see [Render](#render-fallback) bel
 | --- | --- | --- |
 | Web app | Vercel Function running Django through `config/wsgi.py` | `vercel.json`, `pyproject.toml` (`[tool.vercel]`), `.python-version` |
 | Build | Vercel build step | `vercel-build.sh` |
+| React client | Vite build into `core/static/app/`, then `collectstatic` | `frontend/vite.config.ts` |
 | Static files | WhiteNoise, from `staticfiles/` inside the function bundle | `config/settings.py` (`STORAGES`) |
 | Database | Neon Postgres (free tier doesn't expire) | `DATABASE_URL` |
 
@@ -17,6 +18,7 @@ blueprint is still in the repo as a fallback (see [Render](#render-fallback) bel
    exists, Vercel doesn't read `requirements.txt`. Docker and Render still use it, so keep both
    lists identical (`tests/test_packaging.py` fails if they drift).
 2. `vercel-build.sh` runs (`buildCommand` in `vercel.json`):
+   - `npm ci && npm run build` in `frontend/` writes `core/static/app/app.js` and `app.css`.
    - `collectstatic` writes hashed, compressed files to `staticfiles/`.
    - **Production builds only** (`VERCEL_ENV=production`): `migrate`, `seed_demo`, and a one-time
      `createsuperuser` from the `DJANGO_SUPERUSER_*` variables. Preview builds never touch the
@@ -53,8 +55,10 @@ Render happens at build time on Vercel.
    You don't need to set `DEBUG` (it defaults to off on Vercel) or the `*.vercel.app` hostnames
    (`config/settings.py` reads them from Vercel's system variables).
 4. **Deploy.** Push to `main` for production. Every other branch and pull request gets a preview URL.
-5. **Check it.** Open `/`, `/api/v1/`, `/admin/`, and a static file such as
-   `/static/core/dashboard.css`. All should return 200.
+5. **Check it.** Open `/`, `/app/`, `/api/v1/`, `/admin/`, and a static file such as
+   `/static/core/dashboard.css`. All should return 200. `/app/` is the React + TypeScript
+   dashboard; if it 500s with a missing static manifest entry, the frontend build or
+   `collectstatic` did not run.
 
 ### From the CLI
 

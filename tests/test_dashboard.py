@@ -36,6 +36,58 @@ def test_funnel_is_in_pipeline_order(variants):
 
 
 @pytest.mark.django_db
+def test_funnel_keeps_the_saved_stage_when_it_is_empty():
+    # Regression: a fresh deployment only seeds an applied row, and the funnel used to
+    # drop "saved" whenever its count was zero, contradicting "including empty stages".
+    Application.objects.create(company='c', role='r', status='applied')
+    stages = funnel()
+    assert [row['status'] for row in stages] == [
+        'saved', 'applied', 'replied', 'interview', 'offer', 'rejected']
+    assert stages[0]['n'] == 0
+
+
+@pytest.mark.django_db
+def test_zero_half_life_is_rejected_but_legacy_rows_do_not_crash(client):
+    from django.core.exceptions import ValidationError
+    from django.utils import timezone
+
+    with pytest.raises(ValidationError):
+        Skill(name='Broken', category='x', half_life_days=0).full_clean()
+
+    # A row written before the validator (or by raw SQL) must not 500 the dashboard.
+    skill = Skill.objects.create(name='Legacy', category='x', half_life_days=0,
+                                 last_revised_at=timezone.now())
+    assert skill.freshness() == 0.0
+    assert client.get('/').status_code == 200
+    assert client.get('/api/v1/skills/').status_code == 200
+    assert client.get('/api/v1/summary/').status_code == 200
+
+
+@pytest.mark.django_db
+def test_sync_github_survives_a_repo_with_no_timestamps():
+    Skill.objects.create(name='Python', category='backend')
+    fake = MagicMock()
+    fake.json.return_value = [
+        {'html_url': 'https://github.com/x/empty', 'name': 'empty', 'pushed_at': None,
+         'updated_at': None, 'created_at': None, 'topics': [], 'language': 'Python',
+         'fork': False},
+    ]
+    with patch('core.management.commands.sync_github.httpx.get', return_value=fake):
+        call_command('sync_github', stdout=StringIO())
+    proof = Proof.objects.get(url='https://github.com/x/empty')
+    assert proof.occurred_at is not None
+    assert list(proof.skills.values_list('name', flat=True)) == ['Python']
+
+
+@pytest.mark.django_db
+def test_react_dashboard_is_served(client):
+    response = client.get('/app/')
+    assert response.status_code == 200
+    html = response.content.decode()
+    assert '/static/app/app.js' in html and '/static/app/app.css' in html
+
+
+@pytest.mark.django_db
 def test_snapshot_counts_only_this_week():
     monday = week_start(date(2026, 10, 14))
     assert monday == date(2026, 10, 12)

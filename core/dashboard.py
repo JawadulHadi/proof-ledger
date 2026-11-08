@@ -22,7 +22,8 @@ def decorate(skill):
     skill.pct = round(skill.fresh * 100)
     skill.tier = tier(skill.fresh)
     skill.days = skill.days_idle()
-    if skill.days is None:
+    # No activity, or a legacy zero half-life: no position on the curve and no decay rate.
+    if skill.days is None or not skill.half_life_days:
         skill.n, skill.decay_rate = None, 0.0
         return skill
     exact = skill.days / skill.half_life_days
@@ -112,8 +113,9 @@ def funnel():
     """Application counts per status, in pipeline order, including empty stages."""
     counts = dict(Application.objects.values_list('status').annotate(n=Count('id')))
     labels = dict(Application.Status.choices)
-    return [{'status': s, 'label': labels[s], 'n': counts.get(s, 0)} for s in FUNNEL_ORDER
-            if counts.get(s) or s != Application.Status.SAVED]
+    # Every stage is always present, including empty ones, so the funnel never silently
+    # loses its first stage on a fresh deployment (seed_demo only creates an applied row).
+    return [{'status': s, 'label': labels[s], 'n': counts.get(s, 0)} for s in FUNNEL_ORDER]
 
 
 def variant_funnel():

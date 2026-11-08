@@ -4,6 +4,12 @@
 # start.sh runs on Render happen here instead. Called through `sh`, so file mode doesn't matter.
 set -e
 
+# React + TypeScript dashboard. Vercel ships Node, so build it fresh; the committed copy in
+# core/static/app keeps hosts without Node (and a plain `git clone`) working.
+if command -v npm >/dev/null 2>&1; then
+  (cd frontend && npm ci --no-audit --no-fund && npm run build)
+fi
+
 # Hashed static files for WhiteNoise; staticfiles/ ships inside the function bundle.
 python manage.py collectstatic --noinput
 

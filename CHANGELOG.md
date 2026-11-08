@@ -31,6 +31,10 @@ running or deploying the app, not a list of files.
   `skip-changelog` to opt out), matching the other proof repos.
 - `sync_github` flags: `--include-forks`, `--include-archived`, and `--prune` (deletes proofs for
   repos GitHub no longer lists, such as renamed or deleted ones).
+- React + TypeScript dashboard at `/app/`, built with Vite from `frontend/` and served by Django
+  from `core/static/app/`. It reads the public API, refreshes every 60 seconds and links back to
+  the classic page, admin and API. The committed build keeps hosts without Node working.
+- Frontend build steps in `build.sh`, `vercel-build.sh` and a Node stage in the `Dockerfile`.
 
 ### Changed
 - Vercel functions run in São Paulo (`gru1`) to sit next to the Neon database in `sa-east-1`,
@@ -51,6 +55,12 @@ running or deploying the app, not a list of files.
   `pyproject.toml` exists, Vercel installs from it with `uv` instead of reading `requirements.txt`.
   `pyproject.toml` now has a `[project]` table with the same dependencies, and a test keeps the two
   lists identical.
+- The funnel always includes the `saved` stage, even when its count is zero, so a fresh
+  deployment no longer shows a five-stage pipeline.
+- `half_life_days` now requires at least 1 (`MinValueValidator` + migration), and `freshness()`
+  and the dashboard treat a legacy zero as fully stale instead of raising `ZeroDivisionError`.
+- `sync_github` no longer crashes on repositories with `pushed_at: null`; it falls back to
+  `updated_at`, `created_at`, then now.
 
 ### Security
 - The `changelog` CI workflow now limits its token to read-only repository access.

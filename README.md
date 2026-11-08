@@ -58,10 +58,26 @@ python manage.py runserver
 ```
 
 - Public dashboard: [http://localhost:8000/](http://localhost:8000/)
+- React + TypeScript dashboard: [http://localhost:8000/app/](http://localhost:8000/app/)
 - Admin: [http://localhost:8000/admin/](http://localhost:8000/admin/)
 - API: [http://localhost:8000/api/v1/](http://localhost:8000/api/v1/) (read-only)
 
 Or with Postgres: `docker compose up`.
+
+### Frontend (React + TypeScript)
+
+The `/app/` dashboard is a Vite + React + TypeScript client that reads the public API. Its
+production build is committed in `core/static/app/`, so the Django server works without Node.
+
+```bash
+cd frontend
+npm ci
+npm run build     # writes ../core/static/app/app.js and app.css
+```
+
+For hot reload, run `npm run dev` in `frontend/` (port 5173) next to `manage.py runserver`; Vite
+proxies `/api`, `/admin` and `/static` to Django. `npm run typecheck` and `npm run build` both
+run `tsc --noEmit`.
 
 ## Commands
 
@@ -87,6 +103,9 @@ Or with Postgres: `docker compose up`.
 - **Admin home**: the same numbers for you, plus the five skills to revise next and weekly snapshots.
 - **API (`/api/v1/`)**: `skills/`, `proofs/`, `summary/` and `funnel/`, read-only, throttled, and the
   summary and funnel cached for 60 seconds.
+- **React dashboard (`/app/`)**: the TypeScript client. KPI tiles, a freshness curve, searchable and
+  filterable skills, the full funnel, reply rate per resume variant, and a filterable proof library.
+  It refreshes every 60 seconds and shows the last good snapshot if a refresh fails.
 
 ### Topic-to-skill mapping
 
@@ -135,6 +154,6 @@ checklist for it, and a CI job fails any pull request that skips the changelog (
 - [x] Topic-to-skill mapping (`Skill.github_topics`)
 - [ ] Scheduled `link_check` and `sync_github` (needs a cron host or a CI secret for the database)
 - [ ] LLM-drafted STAR answers through a provider gateway
-- [ ] React rebuild of the dashboard (`proof-ledger-ui`)
+- [x] React + TypeScript dashboard on the public API (`/app/`)
 
 See `CHANGELOG.md` for what changed in each release and `NOTES.md` for mistakes made and fixed.

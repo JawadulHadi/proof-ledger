@@ -7,7 +7,7 @@
   "functions": {
     "config/wsgi.py": {
       "maxDuration": 30,
-      "excludeFiles": "{tests/**,docs/**,.github/**,.vscode/**,db.sqlite3,*.md,Dockerfile,docker-compose.yml,render.yaml,build.sh,start.sh,vercel-build.sh,requirements-dev.txt}"
+      "excludeFiles": "{tests/**,docs/**,frontend/**,.github/**,.vscode/**,db.sqlite3,*.md,Dockerfile,docker-compose.yml,render.yaml,build.sh,start.sh,vercel-build.sh,requirements-dev.txt}"
     }
   }
 }

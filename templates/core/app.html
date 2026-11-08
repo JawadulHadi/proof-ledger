@@ -1,0 +1,27 @@
+{% load static %}<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Proof Ledger — Dashboard</title>
+  <meta name="description" content="Skills, the proof behind each one, and how fresh they are.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&display=swap">
+  <link rel="stylesheet" href="{% static 'app/app.css' %}">
+</head>
+
+<body>
+  <div id="root"></div>
+  <noscript>
+    <p style="padding:2rem;font-family:system-ui">
+      The interactive dashboard needs JavaScript. The server-rendered version is at
+      <a href="/">/</a>.
+    </p>
+  </noscript>
+  <script type="module" src="{% static 'app/app.js' %}"></script>
+</body>
+
+</html>
